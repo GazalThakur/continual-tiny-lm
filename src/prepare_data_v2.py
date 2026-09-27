@@ -78,11 +78,9 @@ def main(output_dir: str = "data_v2", max_seq_len: int = 256, samples_per_domain
     prepare_domain("C", [ex.get("content", "") for ex in code], tokenizer, output_path, max_seq_len)
 
     # Domain D - Empathetic Dialogues
-    dialog = load_dataset("empathetic_dialogues", split=f"train[:{samples_per_domain}]")
-    dialog_texts = [
-        (ex.get("context", "") + " " + ex.get("utterance", "")).strip()
-        for ex in dialog
-    ]
+        # Domain D - OpenAssistant conversations
+    dialog = load_dataset("OpenAssistant/oasst1", split=f"train[:{samples_per_domain}]")
+    dialog_texts = [ex.get("text", "") for ex in dialog]
     prepare_domain("D", dialog_texts, tokenizer, output_path, max_seq_len)
 
     logger.info("All Experiment 2 domains prepared in %s", output_path)

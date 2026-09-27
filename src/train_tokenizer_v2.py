@@ -31,7 +31,8 @@ def get_training_corpus():
     code = load_dataset("bigcode/the-stack-smol", data_dir="data/python", split="train[:6000]")
 
     # Domain D - Empathetic Dialogues (replacement for broken daily_dialog)
-    dialog = load_dataset("empathetic_dialogues", split="train[:6000]")
+        # Domain D - OpenAssistant conversations
+    dialog = load_dataset("OpenAssistant/oasst1", split="train[:6000]")
 
     def yield_texts():
         for ex in ts:
@@ -48,8 +49,8 @@ def get_training_corpus():
                 yield content
 
         for ex in dialog:
-            text = (ex.get("context", "") + " " + ex.get("utterance", "")).strip()
-            if text and len(text) > 20:
+            text = ex.get("text") or ""
+            if text and len(text.strip()) > 20:
                 yield text
 
     return yield_texts()

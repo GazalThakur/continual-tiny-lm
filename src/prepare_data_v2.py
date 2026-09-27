@@ -6,7 +6,6 @@ Writes only to data_v2/.
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 from pathlib import Path
 from typing import List
@@ -66,21 +65,24 @@ def main(output_dir: str = "data_v2", max_seq_len: int = 256, samples_per_domain
 
     tokenizer = load_bpe_tokenizer(output_dir)
 
-    # ----- Domain A: TinyStories -----
+    # Domain A - TinyStories
     ts = load_dataset("roneneldan/TinyStories", split=f"train[:{samples_per_domain}]")
     prepare_domain("A", [ex["text"] for ex in ts], tokenizer, output_path, max_seq_len)
 
-    # ----- Domain B: WikiText -----
+    # Domain B - WikiText
     wt = load_dataset("Salesforce/wikitext", "wikitext-103-raw-v1", split=f"train[:{samples_per_domain}]")
     prepare_domain("B", [ex["text"] for ex in wt], tokenizer, output_path, max_seq_len)
 
-    # ----- Domain C: Python code -----
+    # Domain C - Python code
     code = load_dataset("bigcode/the-stack-smol", data_dir="data/python", split=f"train[:{samples_per_domain}]")
     prepare_domain("C", [ex.get("content", "") for ex in code], tokenizer, output_path, max_seq_len)
 
-    # ----- Domain D: DailyDialog -----
-    dialog = load_dataset("daily_dialog", split="train[:6000]", trust_remote_code=True)    
-    dialog_texts = [" ".join(ex["dialog"]) for ex in dialog]
+    # Domain D - Empathetic Dialogues
+    dialog = load_dataset("empathetic_dialogues", split=f"train[:{samples_per_domain}]")
+    dialog_texts = [
+        (ex.get("context", "") + " " + ex.get("utterance", "")).strip()
+        for ex in dialog
+    ]
     prepare_domain("D", dialog_texts, tokenizer, output_path, max_seq_len)
 
     logger.info("All Experiment 2 domains prepared in %s", output_path)
@@ -92,4 +94,8 @@ if __name__ == "__main__":
     parser.add_argument("--max-seq-len", type=int, default=256)
     parser.add_argument("--samples-per-domain", type=int, default=8000)
     args = parser.parse_args()
-    main(output_dir=args.output_dir, max_seq_len=args.max_seq_len, samples_per_domain=args.samples_per_domain)
+    main(
+        output_dir=args.output_dir,
+        max_seq_len=args.max_seq_len,
+        samples_per_domain=args.samples_per_domain,
+    )

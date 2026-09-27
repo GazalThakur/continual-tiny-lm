@@ -8,10 +8,9 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import os
 from pathlib import Path
 
-from datasets import load_dataset, concatenate_datasets
+from datasets import load_dataset
 from tokenizers import Tokenizer, models, trainers, pre_tokenizers, decoders, processors
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
@@ -24,38 +23,34 @@ def get_training_corpus():
 
     # Domain A - TinyStories
     ts = load_dataset("roneneldan/TinyStories", split="train[:8000]")
+
     # Domain B - WikiText
     wt = load_dataset("Salesforce/wikitext", "wikitext-103-raw-v1", split="train[:6000]")
-    # Domain C - Python code (small)
-    code = load_dataset(
-        "bigcode/the-stack-smol",
-        data_dir="data/python",
-        split="train[:6000]",
-        token=os.environ.get("HF_TOKEN"),
-    ) 
-       # Domain D - DailyDialog
-    dialog = load_dataset("daily_dialog", split="train[:6000]")
 
-    def dialog_to_text(example):
-        # Join the dialogue turns
-        return {"text": " ".join(example["dialog"])}
+    # Domain C - Python code
+    code = load_dataset("bigcode/the-stack-smol", data_dir="data/python", split="train[:6000]")
 
-    dialog = dialog.map(dialog_to_text)
+    # Domain D - Empathetic Dialogues (replacement for broken daily_dialog)
+    dialog = load_dataset("empathetic_dialogues", split="train[:6000]")
 
-    # Combine
     def yield_texts():
         for ex in ts:
             if ex["text"] and len(ex["text"].strip()) > 20:
                 yield ex["text"]
+
         for ex in wt:
             if ex["text"] and len(ex["text"].strip()) > 20:
                 yield ex["text"]
+
         for ex in code:
-            if ex.get("content") and len(ex["content"].strip()) > 20:
-                yield ex["content"]
+            content = ex.get("content") or ""
+            if content and len(content.strip()) > 20:
+                yield content
+
         for ex in dialog:
-            if ex["text"] and len(ex["text"].strip()) > 20:
-                yield ex["text"]
+            text = (ex.get("context", "") + " " + ex.get("utterance", "")).strip()
+            if text and len(text) > 20:
+                yield text
 
     return yield_texts()
 
@@ -79,12 +74,12 @@ def train_bpe(vocab_size: int = 5000, output_dir: str = "data_v2") -> None:
     logger.info("Training BPE tokenizer (vocab_size=%d)...", vocab_size)
     tokenizer.train_from_iterator(get_training_corpus(), trainer=trainer)
 
-    # Save
+    # Save tokenizer
     tokenizer_file = output_path / "tokenizer.json"
     tokenizer.save(str(tokenizer_file))
     logger.info("Saved tokenizer to %s", tokenizer_file)
 
-    # Also save a small config for easy loading later
+    # Save config
     config = {
         "vocab_size": tokenizer.get_vocab_size(),
         "pad_token": "<pad>",
@@ -93,6 +88,7 @@ def train_bpe(vocab_size: int = 5000, output_dir: str = "data_v2") -> None:
     config_file = output_path / "tokenizer_config.json"
     with open(config_file, "w") as f:
         json.dump(config, f, indent=2)
+
     logger.info("Saved config to %s", config_file)
     logger.info("Final vocab size: %d", tokenizer.get_vocab_size())
 

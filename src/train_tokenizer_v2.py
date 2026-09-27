@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 from pathlib import Path
 
 from datasets import load_dataset, concatenate_datasets
@@ -26,8 +27,13 @@ def get_training_corpus():
     # Domain B - WikiText
     wt = load_dataset("Salesforce/wikitext", "wikitext-103-raw-v1", split="train[:6000]")
     # Domain C - Python code (small)
-    code = load_dataset("bigcode/the-stack-smol", data_dir="data/python", split="train[:6000]")
-    # Domain D - DailyDialog
+    code = load_dataset(
+        "bigcode/the-stack-smol",
+        data_dir="data/python",
+        split="train[:6000]",
+        token=os.environ.get("HF_TOKEN"),
+    ) 
+       # Domain D - DailyDialog
     dialog = load_dataset("daily_dialog", split="train[:6000]")
 
     def dialog_to_text(example):

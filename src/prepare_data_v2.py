@@ -79,7 +79,7 @@ def main(output_dir: str = "data_v2", max_seq_len: int = 256, samples_per_domain
     prepare_domain("C", [ex.get("content", "") for ex in code], tokenizer, output_path, max_seq_len)
 
     # ----- Domain D: DailyDialog -----
-    dialog = load_dataset("daily_dialog", split=f"train[:{samples_per_domain}]")
+    dialog = load_dataset("daily_dialog", split="train[:6000]", trust_remote_code=True)    
     dialog_texts = [" ".join(ex["dialog"]) for ex in dialog]
     prepare_domain("D", dialog_texts, tokenizer, output_path, max_seq_len)
 
